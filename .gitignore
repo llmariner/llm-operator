@@ -31,3 +31,5 @@ credentials/
 
 # Directory where binaries are stored.
 bin/
+
+dist/

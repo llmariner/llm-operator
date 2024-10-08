@@ -42,37 +42,20 @@ jobs:
     runs-on: ubuntu-latest
     needs:
     - update-tag
-    strategy:
-      matrix:
-        os:
-        - linux
-        - darwin
-        - windows
-        arch:
-        - amd64
-        - arm64
     steps:
     - uses: actions/checkout@v4
     - name: Setup Go
       uses: actions/setup-go@v4
       with:
         go-version: 1.23
-    - name: Build binary
-      env:
-        CGO_ENABLED: 0
-        GOOS: ${{ matrix.os }}
-        GOARCH: ${{ matrix.arch }}
-      run: |
-        FLAG_CLI_VERSION="-X github.com/llmariner/llmariner/cli/internal/version.gitTag=${{ needs.update-tag.outputs.new_version }}"; \
-        FLAG_CLI_SHA="-X github.com/llmariner/llmariner/cli/internal/version.gitCommitSha=$(git rev-parse --short HEAD)"; \
-        make build BUILD_FLAGS="-ldflags \"$FLAG_CLI_VERSION $FLAG_CLI_SHA\""
-    - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v4
+    - name: Run GoReleaser
+      uses: goreleaser/goreleaser-action@v6
       with:
-        role-to-assume: arn:aws:iam::803339316953:role/github-actions-ecr-push-llmariners
-        aws-region: us-west-2
-    - name: Publish binary
-      run: aws s3 cp ./bin/llma s3://llmariner-artifacts/artifacts/cli/${{ needs.update-tag.outputs.new_version }}/${{ matrix.os }}-${{ matrix.arch }}/llma
+        distribution: goreleaser
+        version: latest
+        args: release --clean
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   publish-helm-chart:
     runs-on: ubuntu-latest
